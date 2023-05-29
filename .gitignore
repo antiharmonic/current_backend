@@ -1,0 +1,12 @@
+*
+!*.go
+!config.example.ini
+!*.md
+!.gitignore
+!current
+!current/*
+!db
+!db/migrations
+!db/migrations/*
+!go.mod
+!go.sum
