@@ -63,9 +63,11 @@ func main() {
 
   // /search
 
-  // /list
+  // /list ?type=str&limit=int
   router.HandleFunc("/list", srv.ListMedia).Methods("Get")
+
   // /list/recent
+  router.HandleFunc("/list/recent", srv.ListRecentMedia).Methods("Get")
 
   // /count
 

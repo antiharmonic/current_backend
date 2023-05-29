@@ -24,9 +24,14 @@ type Media struct {
 }
 
 type MediaStorage interface {
-	ListMedia() ([]Media, error)
+	ListMedia(string, string, string) ([]Media, error)
+	ListRecentMedia(string, string) ([]Media, error)
 }
 
-func (s serviceImpl) ListMedia() ([]Media, error) {
-	return s.db.ListMedia()
+func (s serviceImpl) ListMedia(media_type string, limit string, genre string) ([]Media, error) {
+	return s.db.ListMedia(media_type, limit, genre)
+}
+
+func (s serviceImpl) ListRecentMedia(media_type string, limit string) ([]Media, error) {
+	return s.db.ListRecentMedia(media_type, limit)
 }
