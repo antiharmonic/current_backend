@@ -60,6 +60,8 @@ func main() {
   // /delete
 
   // /start
+  router.HandleFunc("/start/{id}", srv.StartMedia).Methods("GET", "POST")
+  router.HandleFunc("/start/{id}/", srv.StartMedia).Methods("GET", "POST")
 
   // /search
 
@@ -87,10 +89,4 @@ func SetJSON(w http.ResponseWriter) {
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
   w.WriteHeader(http.StatusOK)
   fmt.Fprintf(w, "API is up and running")
-}
-
-func ListMedia(w http.ResponseWriter, r *http.Request) {
-  SetJSON(w)
-  w.WriteHeader(http.StatusOK)
-  
 }

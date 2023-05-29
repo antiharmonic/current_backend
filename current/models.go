@@ -26,6 +26,7 @@ type Media struct {
 type MediaStorage interface {
 	ListMedia(string, string, string) ([]Media, error)
 	ListRecentMedia(string, string) ([]Media, error)
+	StartMedia(int) (*Media, error)
 }
 
 func (s serviceImpl) ListMedia(media_type string, limit string, genre string) ([]Media, error) {
@@ -34,4 +35,8 @@ func (s serviceImpl) ListMedia(media_type string, limit string, genre string) ([
 
 func (s serviceImpl) ListRecentMedia(media_type string, limit string) ([]Media, error) {
 	return s.db.ListRecentMedia(media_type, limit)
+}
+
+func (s serviceImpl) StartMedia(id int) (*Media, error) {
+	return s.db.StartMedia(id)
 }

@@ -15,12 +15,6 @@ var (
 	MediaTable = "current_media"
 )
 
-// func (p postgres) CreateMedia(m current.Media) error {
-// 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-// 	stmnt, args, err := psql.Insert(MediaTable).
-// 		Columns("id", "")
-// }
-
 func (p postgres) ListMediaWrapper(media_type string, limit string, genre string, orderby string, include_removed bool) ([]current.Media, error){
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	builder := psql.Select("*").From(MediaTable)
@@ -62,4 +56,24 @@ func (p postgres) ListMedia(media_type string, limit string, genre string) ([]cu
 
 func (p postgres) ListRecentMedia(media_type string, limit string) ([]current.Media, error) {
 	return p.ListMediaWrapper(media_type, limit, "", "id desc", false)
+}
+
+func (p postgres) StartMedia(id int) (*current.Media, error) {
+	stmnt := sq.Update(MediaTable).PlaceholderFormat(sq.Dollar).Where("id = ?", id).Set("started", sq.Expr("now()")).Suffix("returning *")
+	sql, args, err := stmnt.ToSql()
+	if err != nil {
+		return nil, err
+	}
+	log.Println(sql, args)
+	var m current.Media
+	rows, err := p.pool.Query(context.Background(), sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	err = pgxscan.ScanOne(&m, rows)
+	//err = pgxscan.Select(context.Background(), p.pool, &m, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return &m, nil
 }
