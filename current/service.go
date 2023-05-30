@@ -1,9 +1,11 @@
 package current
 
 type Service interface {
-	ListMedia(string, string, string) ([]Media, error)
-	ListRecentMedia(string, string) ([]Media, error)
+	ListMedia(int, int, string) ([]Media, error)
+	ListRecentMedia(int, int) ([]Media, error)
 	StartMedia(int) (*Media, error)
+	SearchMedia(string, int) ([]Media, error)
+	GetMediaByID(int) (*Media, error)
 }
 
 type Storage interface {

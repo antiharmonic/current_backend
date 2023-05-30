@@ -5,35 +5,54 @@ import (
 	"github.com/georgysavva/scany/pgxscan"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/antiharmonic/current_backend/current"
-	"strconv"
 	"log"
 	"fmt"
 	"strings"
+	"database/sql"
 )
 
 var (
 	MediaTable = "current_media"
 )
 
-func (p postgres) ListMediaWrapper(media_type string, limit string, genre string, orderby string, include_removed bool) ([]current.Media, error){
+func (p postgres) GetMediaByID (id int) (*current.Media, error) {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	sql, args, err := psql.Select("*").From(MediaTable).Where(sq.Eq{"id": id}).ToSql()
+	var m current.Media
+	rows, err := p.pool.Query(context.Background(), sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	err = pgxscan.ScanOne(&m, rows)
+	if err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
+
+func (p postgres) SearchMediaWrapper(m *current.MediaQuery) ([]current.Media, error){
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	builder := psql.Select("*").From(MediaTable)
-	if media_type != "" {
-		log.Println("Adding media type", media_type)
-		builder = builder.Where("type = ?", media_type)
+	if m.Title.Valid && m.Title.String != "" {
+		builder = builder.Where("lower(title) like ?", fmt.Sprint("%", strings.ToLower(m.Title.String), "%"))
 	}
-	if genre != "" {	
-		builder = builder.Where("lower(genre) like ?", fmt.Sprint("%", strings.ToLower(genre), "%"))
+	if m.MediaType.Valid {
+		builder = builder.Where("type = ?", m.MediaType.Int64)
 	}
-	nlimit, err := strconv.ParseUint(limit, 10, 64)
-	if err == nil {
-		builder = builder.Limit(nlimit)
+	if m.Genre.Valid && m.Genre.String != "" {	
+		builder = builder.Where("lower(genre) like ?", fmt.Sprint("%", strings.ToLower(m.Genre.String), "%"))
 	}
-	if orderby != "" {
-		builder = builder.OrderBy(orderby)
+	//nlimit, err := strconv.ParseUint(limit, 10, 64)
+	if m.Limit != 0 {
+		builder = builder.Limit(m.Limit)
 	}
-	if include_removed == false {
+	if m.OrderBy.Valid && m.OrderBy.String != "" {
+		builder = builder.OrderBy(m.OrderBy.String)
+	}
+	if m.IncludeRemoved.Valid && m.IncludeRemoved.Bool == false {
 		builder = builder.Where(sq.Eq{"removed": nil})
+	} else if m.IncludeRemoved.Valid && m.IncludeRemoved.Bool == true {
+		builder = builder.Where(sq.NotEq{"removed": nil})
 	}
 	sql, args, err := builder.ToSql()
 	log.Println(sql)
@@ -41,21 +60,37 @@ func (p postgres) ListMediaWrapper(media_type string, limit string, genre string
 		return nil, err
 	}
 
-	var m  []current.Media
-	err = pgxscan.Select(context.Background(), p.pool, &m, sql, args...)
+	var results []current.Media
+	err = pgxscan.Select(context.Background(), p.pool, &results, sql, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	return m, nil
+	return results, nil
 }
 
-func (p postgres) ListMedia(media_type string, limit string, genre string) ([]current.Media, error) {
-	return p.ListMediaWrapper(media_type, limit, genre, "title", true)
+func (p postgres) ListMedia(media_type int, limit int, genre string) ([]current.Media, error) {
+	nGenre, err := current.ParamToNullString(genre)
+	if err != nil {
+		return nil, err
+	}
+	nType, err := current.IntParamToNullInt(media_type, true)
+	if err != nil {
+		return nil, err
+	}
+	return p.SearchMediaWrapper(&current.MediaQuery{Media: current.Media{Genre: nGenre, MediaType: nType}, Limit: uint64(limit)})
 }
 
-func (p postgres) ListRecentMedia(media_type string, limit string) ([]current.Media, error) {
-	return p.ListMediaWrapper(media_type, limit, "", "id desc", false)
+func (p postgres) ListRecentMedia(media_type int, limit int) ([]current.Media, error) {
+	nType, err := current.IntParamToNullInt(media_type, true)
+	if err != nil {
+		return nil, err
+	}
+	return p.SearchMediaWrapper(&current.MediaQuery{
+		Media: current.Media{MediaType: nType}, 
+		Limit: uint64(limit), 
+		OrderBy: current.NullString{NullString: sql.NullString{String: "id desc", Valid:true}},
+	} )//"", media_type, limit, "", "id desc", false)
 }
 
 func (p postgres) StartMedia(id int) (*current.Media, error) {
@@ -76,4 +111,16 @@ func (p postgres) StartMedia(id int) (*current.Media, error) {
 		return nil, err
 	}
 	return &m, nil
+}
+
+func (p postgres) SearchMedia(title string, media_type int) ([]current.Media, error) {
+	nTitle, err := current.ParamToNullString(title)
+	if err != nil {
+		return nil, err
+	}
+	nType, err := current.IntParamToNullInt(media_type, true)
+	if err != nil {
+		return nil, err
+	}
+	return p.SearchMediaWrapper(&current.MediaQuery{Media: current.Media{Title: nTitle, MediaType: nType}})
 }

@@ -64,6 +64,7 @@ func main() {
   router.HandleFunc("/start/{id}/", srv.StartMedia).Methods("GET", "POST")
 
   // /search
+  router.HandleFunc("/search", srv.SearchMedia).Methods("GET")
 
   // /list ?type=str&limit=int
   router.HandleFunc("/list", srv.ListMedia).Methods("Get")

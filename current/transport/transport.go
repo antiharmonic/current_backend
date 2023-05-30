@@ -27,11 +27,26 @@ type httpEndpoint struct {
 	srv current.Service
 }
 
+func SetJSON(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+}
+
 func (t httpEndpoint) ListMedia(w http.ResponseWriter, r *http.Request) {
-	media_type := r.URL.Query().Get("type")
-	limit := r.URL.Query().Get("limit")
+	p_media_type := r.URL.Query().Get("type")
+	p_limit := r.URL.Query().Get("limit")
 	genre := r.URL.Query().Get("genre")
-	log.Printf("media_type: %s, limit: %s\n", media_type, limit)
+
+	media_type, err := strconv.Atoi(p_media_type)
+	if err != nil {
+		media_type = 0
+	}
+
+	limit, err := strconv.Atoi(p_limit)
+	if err != nil {
+		limit = 0
+	}
+	
+	log.Printf("media_type: %d, limit: %d\n", media_type, limit)
 	m, err := t.srv.ListMedia(media_type, limit, genre)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
@@ -43,6 +58,8 @@ func (t httpEndpoint) ListMedia(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
+
+	SetJSON(w)
 	_, err = w.Write(b)
 	if err != nil {
 		//broken pipe?
@@ -51,10 +68,18 @@ func (t httpEndpoint) ListMedia(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t httpEndpoint) ListRecentMedia(w http.ResponseWriter, r *http.Request) {
-	media_type := r.URL.Query().Get("type")
-	limit := r.URL.Query().Get("limit")
-	if limit == "" {
-		limit = "10"
+	p_media_type := r.URL.Query().Get("type")
+	p_limit := r.URL.Query().Get("limit")
+	limit := 10
+	if p_limit != "" {
+		n, err := strconv.Atoi(p_limit)
+		if err == nil {
+			limit = n
+		}
+	}
+	media_type, err := strconv.Atoi(p_media_type)
+	if err != nil {
+		media_type = 0
 	}
 	m, err := t.srv.ListRecentMedia(media_type, limit)
 	if err != nil {
@@ -67,6 +92,8 @@ func (t httpEndpoint) ListRecentMedia(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
+
+	SetJSON(w)
 	_, err = w.Write(b)
 	if err != nil {
 		log.Println(err)
@@ -97,8 +124,76 @@ func (t httpEndpoint) StartMedia(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	SetJSON(w)
 	_, err = w.Write(b)
 	if err != nil {
 		log.Println(err)
 	}
 }
+
+func (t httpEndpoint) SearchMedia(w http.ResponseWriter, r *http.Request) {
+	var vars map[string]string
+	vars = make(map[string]string)
+	vars["type"] = r.URL.Query().Get("type")
+	vars["id"] = r.URL.Query().Get("id")
+	vars["title"] = r.URL.Query().Get("title")
+	log.Println(vars)
+	if vars["id"] == "" && vars["title"] == "" && vars["type"] == "" {
+		http.Error(w, "This endpoint requires at least one of: id, title, type.", 500)
+		return
+	}
+	var id int
+	var err error
+	// if the id is defined, return a single item and ignore other params.
+	if vars["id"] != "" {
+		id, err = strconv.Atoi(vars["id"])
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		m, err := t.srv.GetMediaByID(id)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		b, err := json.Marshal(m)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		SetJSON(w)
+		_, err = w.Write(b)
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	my_type, err := strconv.Atoi(vars["type"])
+	if err != nil {
+		my_type = 0
+	}
+
+	//mq := current.MediaQuery{Media: current.Media{Title: title, MediaType: media_type}}
+	// i'm not sure if this is the right way to do this. should it be a struct so the values that aren't 
+	// being used can be nil? or does it not matter since if they're not defined or 0 I can just ignore them in the model side?
+	// should I make a struct like SearchableMedia?
+	m, err := t.srv.SearchMedia(vars["title"], my_type)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	b, err := json.Marshal(m)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	SetJSON(w)
+	_, err = w.Write(b)
+	if err != nil {
+		log.Println(err)
+	}
+}	
