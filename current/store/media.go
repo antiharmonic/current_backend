@@ -124,3 +124,21 @@ func (p postgres) SearchMedia(title string, media_type int) ([]current.Media, er
 	}
 	return p.SearchMediaWrapper(&current.MediaQuery{Media: current.Media{Title: nTitle, MediaType: nType}})
 }
+
+func (p postgres) TopMedia(media_type int) ([]current.Media, error) {
+	nType, err := current.IntParamToNullInt(media_type, true)
+	if err != nil {
+		return nil, err
+	}
+
+	query := current.MediaQuery{
+		Media: current.Media{
+			MediaType: nType,
+			Priority: sql.NullBool{Bool: true, Valid: true},
+			},
+		IncludeRemoved: sql.NullBool{Bool: false, Valid: true},
+		OrderBy: current.NullString{NullString: sql.NullString{String: "date_added, title", Valid: true}},
+	}
+
+	return p.SearchMediaWrapper(&query)
+}

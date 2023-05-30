@@ -75,6 +75,9 @@ func main() {
   // /count
 
   // /top
+  router.HandleFunc("/top", srv.TopMedia).Methods("GET")
+  router.HandleFunc("/top/", srv.TopMedia).Methods("GET")
+
   loggedRouter := handlers.LoggingHandler(os.Stdout, router)
   log.Println("Starting server on " + config.String("server.port"))
   if err := http.ListenAndServe("0.0.0.0:" + config.String("server.port"), loggedRouter); err != nil {

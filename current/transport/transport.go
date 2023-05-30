@@ -196,4 +196,29 @@ func (t httpEndpoint) SearchMedia(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
-}	
+}
+
+func (t httpEndpoint) TopMedia(w http.ResponseWriter, r *http.Request) {
+	p_media_type := r.URL.Query().Get("type")
+	media_type, err := strconv.Atoi(p_media_type)
+	if err != nil {
+		media_type = 0
+	}
+	m, err := t.srv.TopMedia(media_type)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	//marshal
+	b, err := json.Marshal(m)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	SetJSON(w)
+	_, err = w.Write(b)
+	if err != nil {
+		log.Println(err)
+	}
+}

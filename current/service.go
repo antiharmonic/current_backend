@@ -5,6 +5,7 @@ type Service interface {
 	ListRecentMedia(int, int) ([]Media, error)
 	StartMedia(int) (*Media, error)
 	SearchMedia(string, int) ([]Media, error)
+	TopMedia(int) ([]Media, error)
 	GetMediaByID(int) (*Media, error)
 }
 
