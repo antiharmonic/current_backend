@@ -37,6 +37,8 @@ type MediaStorage interface {
 	SearchMedia(string, int) ([]Media, error)
 	TopMedia(int) ([]Media, error)
 	GetMediaByID(int) (*Media, error)
+	UpgradeMedia(int) (*Media, error)
+	DowngradeMedia(int) (*Media, error)
 }
 
 func (s serviceImpl) ListMedia(media_type int, limit int, genre string) ([]Media, error) {
@@ -62,4 +64,12 @@ func (s serviceImpl) TopMedia(media_type int) ([]Media, error) {
 
 func (s serviceImpl) GetMediaByID(id int) (*Media, error) {
 	return s.db.GetMediaByID(id)
+}
+
+func (s serviceImpl) UpgradeMedia(id int) (*Media, error) {
+	return s.db.UpgradeMedia(id)
+}
+
+func (s serviceImpl) DowngradeMedia(id int) (*Media, error) {
+	return s.db.DowngradeMedia(id)
 }

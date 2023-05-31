@@ -59,7 +59,6 @@ func (p postgres) SearchMediaWrapper(m *current.MediaQuery) ([]current.Media, er
 	if err != nil {
 		return nil, err
 	}
-
 	var results []current.Media
 	err = pgxscan.Select(context.Background(), p.pool, &results, sql, args...)
 	if err != nil {
@@ -111,6 +110,34 @@ func (p postgres) StartMedia(id int) (*current.Media, error) {
 		return nil, err
 	}
 	return &m, nil
+}
+
+func (p postgres) prioritizeMedia(id int, priority bool) (*current.Media, error) {
+	stmnt := sq.Update(MediaTable).PlaceholderFormat(sq.Dollar).Where("id = ?", id).Set("priority", priority).Suffix("returning *")
+	sql, args, err := stmnt.ToSql()
+	if err != nil {
+		return nil, err
+	}
+	log.Println(sql, args)
+	var m current.Media
+	rows, err := p.pool.Query(context.Background(), sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	err = pgxscan.ScanOne(&m, rows)
+	//err = pgxscan.Select(context.Background(), p.pool, &m, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
+
+func (p postgres) UpgradeMedia(id int) (*current.Media, error) {
+	return p.prioritizeMedia(id, true)
+}
+
+func (p postgres) DowngradeMedia(id int) (*current.Media, error) {
+	return p.prioritizeMedia(id, false)
 }
 
 func (p postgres) SearchMedia(title string, media_type int) ([]current.Media, error) {

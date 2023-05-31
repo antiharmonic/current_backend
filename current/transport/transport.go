@@ -131,6 +131,49 @@ func (t httpEndpoint) StartMedia(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (t httpEndpoint) prioritizeMedia(w http.ResponseWriter, r *http.Request, priority bool) {
+	vars := mux.Vars(r)
+	if vars["id"] == "" {
+		http.Error(w, "This endpoint requires an ID", 500)
+	}
+
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	var m *current.Media
+	if priority {
+		m, err = t.srv.UpgradeMedia(id)
+	} else {
+		m, err = t.srv.DowngradeMedia(id)
+	}
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	b, err := json.Marshal(m)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	SetJSON(w)
+	_, err = w.Write(b)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func (t httpEndpoint) UpgradeMedia(w http.ResponseWriter, r *http.Request) {
+	t.prioritizeMedia(w, r, true)
+}
+
+func (t httpEndpoint) DowngradeMedia(w http.ResponseWriter, r *http.Request) {
+	t.prioritizeMedia(w, r, false)
+}
+
 func (t httpEndpoint) SearchMedia(w http.ResponseWriter, r *http.Request) {
 	var vars map[string]string
 	vars = make(map[string]string)

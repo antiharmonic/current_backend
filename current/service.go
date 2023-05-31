@@ -7,6 +7,8 @@ type Service interface {
 	SearchMedia(string, int) ([]Media, error)
 	TopMedia(int) ([]Media, error)
 	GetMediaByID(int) (*Media, error)
+	UpgradeMedia(int) (*Media, error)
+	DowngradeMedia(int) (*Media, error)
 }
 
 type Storage interface {

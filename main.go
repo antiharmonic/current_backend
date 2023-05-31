@@ -13,7 +13,6 @@ import (
   "github.com/antiharmonic/current_backend/current/store"
   "github.com/antiharmonic/current_backend/current/transport"
 
-
   "github.com/gookit/config/v2"
   "github.com/gookit/config/v2/ini"
   "github.com/gorilla/mux"
@@ -54,6 +53,8 @@ func main() {
 
   // /upgrade/id (priority)
   // /downgrade/id (priority)
+  router.HandleFunc("/upgrade/{id}", srv.UpgradeMedia).Methods("GET", "POST")
+  router.HandleFunc("/downgrade/{id}", srv.DowngradeMedia).Methods("GET", "POST")
 
   // /random
 
